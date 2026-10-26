@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8">
+    <title>Meu Carrinho de Compras</title>
+    <!-- Reaproveitando as tipografias e o Bootstrap que você já utiliza no seu projeto -->
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link href="https://jsdelivr.net" rel="stylesheet">
+
+    <!-- Bootstrap v5.3.8 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  </head>
+  <body class="bg-light" style="font-family: 'Open Sans', sans-serif;">
+
+  <div class="container py-5">
+    <h1 class="mb-4">🛒 Meu Carrinho</h1>
+
+    <div class="card p-4 shadow-sm mb-4">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Preço Unitário</th>
+            <th>Quantidade</th>
+            <th>Subtotal</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-carrinho">
+            <!-- Preenchido dinamicamente via JS -->
+        </tbody>
+      </table>
+
+      <div class="d-flex justify-content-end align-items-center mt-3">
+        <h3 class="me-3">Total Geral:</h3>
+        <h2 id="total-geral" class="text-success fw-bold">R\$ 0,00</h2> 
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="produtos.html" class="btn btn-outline-secondary">↩ Continuar Comprando</a>
+      <button onclick="finalizarCompra()" class="btn btn-success btn-lg">Finalizar Pedido ➔</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  <script>
+    // Função para buscar e listar os itens salvos na sessão do PHP
+    async function carregarCarrinho() {
+      const resposta = await fetch('api_carrinho.php');
+      const dados = await resposta.json();
+      const tbody = document.getElementById('tabela-carrinho');
+      const totalH2 = document.getElementById('total-geral');
+
+      tbody.innerHTML = '';
+
+      if (dados.itens.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Seu carrinho está vazio.</td></tr>`;
+        totalH2.textContent = 'R\$ 0,00';
+        return;
+      }
+
+      dados.itens.forEach(item => {
+        const precoUn = item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const subtotal = item.subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const linha = `
+            <tr>
+              <td><strong>${item.nome}</strong></td>
+              <td>${precoUn}</td>
+              <td>${item.quantidade} un</td>
+              <td class="fw-semibold">${subtotal}</td>
+              <td>
+                <button onclick="removerItem(${item.id})" class="btn btn-outline-danger btn-sm">Remover</button>
+              </td>
+            </tr>
+        `;
+        tbody.innerHTML += linha;
+      });
+
+      totalH2.textContent = dados.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    // Função para remover um produto específico do carrinho
+    async function removerItem(produtoId) {
+      const resposta = await fetch('api_carrinho.php', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ produto_id: produtoId })
+      });
+      const resultado = await resposta.json();
+      
+      if (resultado.sucesso) {
+          carregarCarrinho(); // Recarrega a listagem atualizada
+      }
+    }
+
+    // Simulação do fechamento do pedido
+    async function finalizarCompra() {
+      if (!confirm('Deseja realmente finalizar a compra?')) {
+        return;
+      }
+
+      try {
+        const resposta = await fetch('api_finalizar_compra.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const resultado = await resposta.json();
+        
+        if (resultado.sucesso) {
+          alert(resultado.mensagem);
+          // Redireciona de volta para a vitrine ou limpa a tela do carrinho
+          window.location.href = 'produtos.html';
+        } else {
+          alert(resultado.mensagem);
+        }
+      } catch (erro) {
+          alert('Erro ao processar a finalização da compra.');
+      }
+    }
+
+    // Executa assim que a página abre
+    carregarCarrinho();
+  </script>
+
+  </body>
+</html>

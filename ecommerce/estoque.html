@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8">
+    <title>Painel de Estoque</title>
+
+    <!-- Bootstrap v5.3.8 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">0
+    
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .alerta-minimo { background-color: #fff3cd; color: #856404; font-weight: bold; }
+        .alerta-esgotado { background-color: #f8d7da; color: #721c24; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>Gerenciamento de Estoque (Arquivos Separados)</h1>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Produto</th>
+          <th>Preço</th>
+          <th>Qtd. Atual</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-produtos">
+          <!-- O JavaScript vai preencher as linhas aqui dentro -->
+      </tbody>
+    </table>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script>
+    // Função que busca os produtos no PHP e renderiza na tela
+    async function load_inventory() {
+        const answer = await fetch('api_estoque.php');
+        const products = await answer.json();
+        const tbody = document.getElementById('tabela-produtos');
+        tbody.innerHTML = ''; // Limpa a tabela antes de renderizar
+
+        products.forEach(p => {
+            // Conversão explícita para números inteiros para evitar erro de comparação textual
+            const estoqueAtual = parseInt(p.estoque);
+            const estoqueMinimo = parseInt(p.estoque_minimo);
+
+            let class_status = '';
+            let status_text = 'Normal';
+            
+            if (estoqueAtual <= 0) {
+                class_status = 'alerta-esgotado';
+                status_text = 'Esgotado';
+            } else if (estoqueAtual <= estoqueMinimo) { // Agora a comparação matemática funciona perfeitamente
+                class_status = 'alerta-minimo';
+                status_text = 'Estoque Baixo';
+            }
+
+            const formatted_price = parseFloat(p.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            const linha = `
+                <tr class="${class_status}">
+                    <td>${p.id}</td>
+                    <td>${p.nome}</td>
+                    <td>${formatted_price}</td>
+                    <td>${p.estoque} un</td>
+                    <td>${status_text}</td>
+                    <td>
+                        <input type="number" id="qtd-${p.id}" value="${p.estoque}" style="width: 60px;" min="0">
+                        <button onclick="update_inventory(${p.id})">Salvar</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += linha;
+        });
+    }
+
+    // Função que envia a nova quantidade para o PHP salvar no banco
+    async function update_inventory(product_id) {
+      const new_quantity = document.getElementById(`qtd-${product_id}`).value;
+
+      const answer = await fetch('api_estoque.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              produto_id: product_id,
+              nova_quantidade: new_quantity
+          })
+      });
+
+      const resultado = await answer.json();
+      
+      if (resultado.sucesso) {
+          alert('Estoque atualizado com sucesso!');
+          load_inventory(); // Recarrega a lista atualizada
+      } else {
+          alert('Erro ao atualizar o estoque.');
+      }
+    }
+
+    // Executa ao abrir a página
+    load_inventory();
+</script>
+
+  </body>
+</html>

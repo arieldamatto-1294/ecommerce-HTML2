@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8">
+    <title>Vitrine da Loja</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link href="https://jsdelivr.net" rel="stylesheet">
+
+    <!-- Bootstrap v5.3.8 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="style/produtos.css">
+  </head>
+  <body class="bg-light" style="font-family: 'Open Sans', sans-serif;">
+
+    <div class="container py-5">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>🛍️ Nossos Produtos</h1>
+        <a href="carrinho.html" class="btn btn-primary">Ver Carrinho 🛒</a>
+      </div>
+
+      <div class="row" id="vitrine-produtos">
+        <!-- Os produtos vão aparecer aqui dentro via JavaScript -->
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script>
+        // Busca os produtos cadastrados na sua api_estoque.php
+        async function carregarVitrine() {
+          const resposta = await fetch('api_estoque.php');
+          const produtos = await resposta.json();
+          const vitrine = document.getElementById('vitrine-produtos');
+          
+          vitrine.innerHTML = '';
+
+          produtos.forEach(p => {
+            const precoFormatado = parseFloat(p.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            // Desativa o botão se o estoque estiver zerado
+            const esgotado = p.estoque <= 0;
+            const textoBotao = esgotado ? 'Esgotado' : 'Adicionar ao Carrinho';
+            const classeBotao = esgotado ? 'btn-secondary disabled' : 'btn-success';
+
+            // Se estiver esgotado, desabilitamos também o input de quantidade
+            const disabledInput = esgotado ? 'disabled' : '';
+
+            const card = `
+              <div class="col-md-4 mb-4">
+                <div class="card shadow-sm h-100">
+                  <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                      <h5 class="card-title">${p.nome}</h5>
+                      <p class="text-muted small">Disponível: ${p.estoque} un</p>
+                    </div>
+
+                    <div class="mt-3">
+                      <!-- Campo para selecionar a quantidade -->
+                      <div class="input-group mb-3">
+                          <span class="input-group-text">Qtd</span>
+                          <input type="number" id="qtd-${p.id}" class="form-control" value="1" min="1" max="${p.estoque}" ${disabledInput}>
+                      </div>
+
+                      <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-5 fw-bold text-dark">${precoFormatado}</span>
+                        <button onclick="adicionarAoCarrinho(${p.id})" class="btn ${classeBotao}">
+                          ${textoBotao}
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            `;
+            vitrine.innerHTML += card;
+          });
+        }
+
+        // Pega a quantidade do input correspondente e envia para a api_carrinho.php
+        async function adicionarAoCarrinho(idProduto) {
+            // Busca o elemento input usando o ID dinâmico criado no card
+            const inputQuantidade = document.getElementById(`qtd-${idProduto}`);
+            const quantidade = parseInt(inputQuantidade.value) || 1;
+
+            try {
+              const resposta = await fetch('api_carrinho.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ produto_id: idProduto, quantidade: quantidade })
+              });
+              
+              const resultado = await resposta.json();
+              
+              if (resultado.sucesso) {
+                alert(resultado.mensagem);
+              } else {
+                alert(resultado.mensagem);
+              }
+            } catch (erro) {
+              alert('Erro ao adicionar produto.');
+            }
+        }
+
+        // Executa ao carregar a página
+        carregarVitrine();
+    </script>
+  </body>
+</html>

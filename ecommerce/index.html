@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+  <html lang="pt">
+   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel E-commerce: Iniciar sessão</title>
+
+    <!-- Lista de Tipografias -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap (v5.3.8) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="style/index.css">
+  </head>
+  <body>
+    <div class="container">
+      <main>
+        <div class="login-container">
+          <h2>Entrar no Painel</h2>
+          <form id="form-login">
+            <div class="form-group">
+              <label for="email">E-mail:</label>
+              <input type="email" id="email" required placeholder="Ex: admin@ecommerce.com">
+            </div>
+            <div class="form-group">
+              <label for="senha">Senha:</label>
+              <input type="password" id="senha" required placeholder="Inserir senha">
+            </div>
+            <button type="submit">Acessar</button>
+          </form>
+          <div id="mensagem-resposta" class="mensagem"></div>
+        </div>
+      </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <!-- <script src="events/index.js"></script> -->
+    <script>
+      document.getElementById('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault(); // Impede a página de recarregar
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('senha').value;
+      const message_div = document.getElementById('mensagem-resposta');
+
+      message_div.textContent = 'Autenticando...';
+      message_div.className = 'mensagem';
+
+      try {
+          const resposta = await fetch('api_login.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email, senha: password
+            })
+          });
+
+          const result = await resposta.json();
+
+          if (result.sucesso) {
+              message_div.textContent = 'Login feito com sucesso! Redirecionando...';
+              message_div.className = 'mensagem sucesso';
+              
+              // Redireciona o usuário para a tela de estoque após 1.5 segundos
+              setTimeout(() => {
+                window.location.href = 'estoque.html';
+              }, 1500);
+          } else {
+            message_div.textContent = result.mensagem;
+            message_div.className = 'mensagem erro';
+          }
+      } catch (error) {
+          message_div.textContent = 'Erro ao conectar ao servidor.';
+          message_div.className = 'mensagem erro';
+      }
+    });
+    </script>
+  </body>
+</html>
